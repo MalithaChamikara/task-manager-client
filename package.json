@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@heroui/react": "^2.8.9",
+    "@heroui/theme": "^2.4.26",
     "@phosphor-icons/react": "^2.1.10",
     "@tanstack/react-query": "^5.90.21",
     "next": "16.1.6",
