@@ -1,15 +1,39 @@
 ﻿"use client";
 
-import { createTaskAction, type CreateTaskInput } from "@/actions/tasks";
+import {
+    createTaskAction,
+    type CreateTaskInput,
+    type TaskPriority,
+    type TaskStatus,
+} from "@/actions/tasks";
 import { useAuth } from "@/context/AuthContext";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Alert, Button, Input } from "@heroui/react";
-import { useState } from "react";
+import {
+    Alert,
+    Button,
+    Input,
+    Select,
+    SelectItem,
+    Textarea,
+} from "@heroui/react";
+import { useMemo, useState } from "react";
 
 type AddTaskFormProps = {
     onSuccess?: () => void;
     onCancel?: () => void;
 };
+
+const STATUS_OPTIONS: Array<{ key: TaskStatus; label: string }> = [
+    { key: "todo", label: "To do" },
+    { key: "in-progress", label: "In progress" },
+    { key: "done", label: "Done" },
+];
+
+const PRIORITY_OPTIONS: Array<{ key: TaskPriority; label: string }> = [
+    { key: "low", label: "Low" },
+    { key: "medium", label: "Medium" },
+    { key: "high", label: "High" },
+];
 
 export function AddTaskForm({ onSuccess, onCancel }: AddTaskFormProps) {
     const queryClient = useQueryClient();
@@ -17,7 +41,19 @@ export function AddTaskForm({ onSuccess, onCancel }: AddTaskFormProps) {
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
+    const [status, setStatus] = useState<TaskStatus | "">("");
+    const [priority, setPriority] = useState<TaskPriority | "">("");
     const [localError, setLocalError] = useState<string | null>(null);
+
+    const selectedStatusKeys = useMemo(
+        () => (status ? new Set([status]) : new Set([])),
+        [status],
+    );
+
+    const selectedPriorityKeys = useMemo(
+        () => (priority ? new Set([priority]) : new Set([])),
+        [priority],
+    );
 
     const createMutation = useMutation({
         mutationFn: async (dto: CreateTaskInput) => {
@@ -29,6 +65,8 @@ export function AddTaskForm({ onSuccess, onCancel }: AddTaskFormProps) {
         onSuccess: async () => {
             setTitle("");
             setDescription("");
+            setStatus("");
+            setPriority("");
             setLocalError(null);
             await queryClient.invalidateQueries({ queryKey: ["tasks"] });
             onSuccess?.();
@@ -48,10 +86,14 @@ export function AddTaskForm({ onSuccess, onCancel }: AddTaskFormProps) {
                     return;
                 }
 
-                createMutation.mutate({
+                const dto: CreateTaskInput = {
                     title: trimmedTitle,
                     description: description.trim() ? description.trim() : undefined,
-                });
+                    status: status || undefined,
+                    priority: priority || undefined,
+                };
+
+                createMutation.mutate(dto);
             }}
         >
             <Input
@@ -63,17 +105,50 @@ export function AddTaskForm({ onSuccess, onCancel }: AddTaskFormProps) {
                 isDisabled={createMutation.isPending}
             />
 
-            <Input
+            <Textarea
                 label="Description"
                 placeholder="Optional details"
                 value={description}
                 onValueChange={setDescription}
                 isDisabled={createMutation.isPending}
+                minRows={3}
             />
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Select
+                    label="Status"
+                    placeholder="Default"
+                    selectedKeys={selectedStatusKeys}
+                    onSelectionChange={(keys) => {
+                        const arr = Array.from(keys as Set<unknown>);
+                        setStatus((arr[0] as TaskStatus) ?? "");
+                    }}
+                    isDisabled={createMutation.isPending}
+                >
+                    {STATUS_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.key}>{opt.label}</SelectItem>
+                    ))}
+                </Select>
+
+                <Select
+                    label="Priority"
+                    placeholder="Default"
+                    selectedKeys={selectedPriorityKeys}
+                    onSelectionChange={(keys) => {
+                        const arr = Array.from(keys as Set<unknown>);
+                        setPriority((arr[0] as TaskPriority) ?? "");
+                    }}
+                    isDisabled={createMutation.isPending}
+                >
+                    {PRIORITY_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.key}>{opt.label}</SelectItem>
+                    ))}
+                </Select>
+            </div>
 
             <Alert
                 color="danger"
-                title="Couldnt create task"
+                title="Couldn’t create task"
                 description={
                     localError ??
                     (createMutation.error instanceof Error

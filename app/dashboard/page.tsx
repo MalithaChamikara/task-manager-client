@@ -11,13 +11,27 @@ import {
     Card,
     CardBody,
     CardHeader,
+    Chip,
     Modal,
     ModalBody,
     ModalContent,
     ModalHeader,
+    Skeleton,
 } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+
+function statusChipColor(status: Task["status"]) {
+    if (status === "done") return "success";
+    if (status === "in-progress") return "primary";
+    return "default";
+}
+
+function priorityChipColor(priority: Task["priority"]) {
+    if (priority === "high") return "danger";
+    if (priority === "medium") return "warning";
+    return "success";
+}
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -51,9 +65,7 @@ export default function DashboardPage() {
                             </p>
                         </CardHeader>
                         <CardBody>
-                            <Button color="primary" onPress={() => router.push("/login")}>
-                                Go to login
-                            </Button>
+                            <Button color="primary" onPress={() => router.push("/login")}>Go to login</Button>
                         </CardBody>
                     </Card>
                 </div>
@@ -70,35 +82,45 @@ export default function DashboardPage() {
                         <p className="text-sm text-foreground-500">All your tasks.</p>
                     </div>
 
-                    <Button color="primary" onPress={() => setIsAddOpen(true)}>
-                        Create new task
-                    </Button>
+                    <Button color="primary" onPress={() => setIsAddOpen(true)}>Create new task</Button>
                 </div>
 
                 <div className="mt-6">
                     <Card>
                         <CardHeader className="flex flex-col items-start gap-1">
                             <h2 className="text-lg font-semibold">Tasks</h2>
-                            <p className="text-sm text-foreground-500">
-                                Click a task to edit.
-                            </p>
+                            <p className="text-sm text-foreground-500">Click a task to edit.</p>
                         </CardHeader>
-                        <CardBody>
+                        <CardBody className="gap-4">
                             <Alert
                                 color="danger"
-                                title="Couldnt load tasks"
-                                description={
-                                    tasksQuery.error instanceof Error
-                                        ? tasksQuery.error.message
-                                        : undefined
-                                }
+                                title="Couldn’t load tasks"
+                                description={tasksQuery.error instanceof Error ? tasksQuery.error.message : undefined}
                                 isVisible={Boolean(tasksQuery.error)}
                             />
 
                             {tasksQuery.isLoading ? (
-                                <p className="text-sm text-foreground-500">Loading</p>
+                                <div className="flex flex-col gap-3">
+                                    {Array.from({ length: 4 }).map((_, idx) => (
+                                        <Card key={idx}>
+                                            <CardBody className="gap-2">
+                                                <Skeleton className="h-4 w-2/3 rounded-md" />
+                                                <Skeleton className="h-3 w-full rounded-md" />
+                                                <div className="flex gap-2">
+                                                    <Skeleton className="h-6 w-20 rounded-full" />
+                                                    <Skeleton className="h-6 w-20 rounded-full" />
+                                                </div>
+                                            </CardBody>
+                                        </Card>
+                                    ))}
+                                </div>
                             ) : tasks.length === 0 ? (
-                                <p className="text-sm text-foreground-500">No tasks yet.</p>
+                                <div className="flex flex-col items-start gap-3">
+                                    <p className="text-sm text-foreground-500">No tasks yet.</p>
+                                    <Button color="primary" variant="flat" onPress={() => setIsAddOpen(true)}>
+                                        Create your first task
+                                    </Button>
+                                </div>
                             ) : (
                                 <div className="flex flex-col gap-3">
                                     {tasks.map((task) => (
@@ -110,17 +132,21 @@ export default function DashboardPage() {
                                                 setIsEditOpen(true);
                                             }}
                                         >
-                                            <CardBody>
+                                            <CardBody className="gap-2">
                                                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                                                     <p className="font-medium">{task.title}</p>
-                                                    <p className="text-xs text-foreground-500">
-                                                        {task.status}  {task.priority}
-                                                    </p>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <Chip size="sm" variant="flat" color={statusChipColor(task.status)}>
+                                                            {task.status}
+                                                        </Chip>
+                                                        <Chip size="sm" variant="flat" color={priorityChipColor(task.priority)}>
+                                                            {task.priority}
+                                                        </Chip>
+                                                    </div>
                                                 </div>
+
                                                 {task.description ? (
-                                                    <p className="text-sm text-foreground-500">
-                                                        {task.description}
-                                                    </p>
+                                                    <p className="text-sm text-foreground-500">{task.description}</p>
                                                 ) : null}
                                             </CardBody>
                                         </Card>
@@ -134,9 +160,11 @@ export default function DashboardPage() {
 
             <Modal
                 isOpen={isAddOpen}
-                onOpenChange={(open) => setIsAddOpen(open)}
+                onOpenChange={setIsAddOpen}
                 placement="center"
+                scrollBehavior="inside"
                 size="lg"
+                classNames={{ wrapper: "items-center", base: "my-0 sm:my-0" }}
             >
                 <ModalContent>
                     {(onClose) => (
@@ -157,7 +185,9 @@ export default function DashboardPage() {
                     if (!open) setSelectedTask(null);
                 }}
                 placement="center"
+                scrollBehavior="inside"
                 size="lg"
+                classNames={{ wrapper: "items-center", base: "my-0 sm:my-0" }}
             >
                 <ModalContent>
                     {(onClose) => (
